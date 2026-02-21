@@ -1,0 +1,10 @@
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/service/UserService.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/BatchApplication.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/batch/UserDtoWriter.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/repository/UserRepository.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/mapper/UserMapper.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/batch/UserReader.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/model/User.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/config/BatchConfig.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/batch/UserItemProcessor.java
+/Users/soof/dev/java/Spring-batch/src/main/java/com/batch/demo/model/UserDto.java
