@@ -79,12 +79,14 @@ public class BatchConfig {
 
     @Bean
     public Job userJob() {
+
         return new JobBuilder("userJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
                 .listener(jobExecutionListener)
                 .start(cleanupStep())
                 .next(userMappingStep())
-                .next(summaryStep())
+                    .on("FAILED").end()         // Stop job if mapping fails
+                    .on("COMPLETED").to(summaryStep()).end()
                 .build();
     }
 
