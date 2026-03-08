@@ -4,6 +4,7 @@ import com.batch.demo.batch.*;
 import com.batch.demo.model.User;
 import com.batch.demo.model.UserDto;
 import jakarta.persistence.EntityManagerFactory;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -70,7 +71,7 @@ public class BatchConfig {
     @Bean
     public Step userMappingStep() {
         return new StepBuilder("userMappingStep", jobRepository)
-                .<UserDto, User>chunk(3, transactionManager) // Read 2 Users, process, then write 2 UserDtos
+                .<UserDto, User>chunk(3, transactionManager)
                 .reader(userReader)
                 .processor(userItemProcessor)
                 .writer(userDtoWriter)
@@ -85,8 +86,8 @@ public class BatchConfig {
                 .listener(jobExecutionListener)
                 .start(cleanupStep())
                 .next(userMappingStep())
-                    .on("FAILED").end()         // Stop job if mapping fails
-                    .on("COMPLETED").to(summaryStep()).end()
+                    .on(BatchStatus.FAILED.name()).end()
+                    .on(BatchStatus.COMPLETED.name()).to(summaryStep()).end()
                 .build();
     }
 

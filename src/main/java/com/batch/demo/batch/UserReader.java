@@ -26,7 +26,7 @@ public class UserReader implements ItemReader<UserDto> {
 
         // CSV tokenizer
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
-        tokenizer.setNames("id", "name", "email");
+        tokenizer.setNames("userId", "userName", "userEmail");
 
         // Object mapper
         BeanWrapperFieldSetMapper<UserDto> mapper =
