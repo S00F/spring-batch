@@ -1,159 +1,134 @@
-# Spring Batch Enterprise Multi-Module Platform
+# Spring Batch Demo Project
 
 ## 📌 Project Overview
 
-This project is an **Enterprise Spring Boot Batch Processing Platform**
-built using a **multi-module Maven architecture**.
+This is a **Spring Boot Batch Processing Demo** application that demonstrates
+core Spring Batch concepts for processing data from CSV files.
 
-The application demonstrates how to design a scalable, maintainable, and
-production-ready batch system capable of:
+The application showcases:
 
--   Reading large datasets from CSV files
--   Processing business data
--   Persisting results into a database
--   Scheduling batch executions
--   Monitoring job execution
--   Triggering jobs via REST API
+-   Reading data from CSV files
+-   Processing business data with item processors
+-   Persisting results into a database using JPA
+-   Job execution with listeners
+-   Multi-step job flows with conditional branching
 
-The architecture follows enterprise layering principles commonly used in
-banking, fintech, and large-scale data processing systems.
-
-------------------------------------------------------------------------
+---
 
 ## 🏗️ Architecture
 
-The platform is structured using modular separation of concerns:
+The project follows a layered single-module structure:
 
--   Domain layer
--   Infrastructure layer
--   Batch processing components
--   Job orchestration
--   Monitoring & scheduling
--   Application runner
+-   **Config** - Spring Batch job and step configuration
+-   **Model** - Domain entities (User, UserDto)
+-   **Batch** - ItemReader, ItemProcessor, ItemWriter, Tasklets
+-   **Service** - Business logic and mapping
+-   **Repository** - Data persistence
 
-------------------------------------------------------------------------
+---
 
 ## 📂 Project Structure
 
-    spring-batch-platform
+    Spring-batch (single-module)
     │
-    ├── batch-domain
-    │   └── Business entities & enums
+    ├── src/main/java/com/batch/demo/
+    │   ├── BatchApplication.java          # Main application entry
+    │   ├── config/
+    │   │   └── BatchConfig.java           # Job & Step configuration
+    │   ├── model/
+    │   │   ├── User.java                  # JPA Entity
+    │   │   └── UserDto.java               # Data Transfer Object
+    │   ├── batch/
+    │   │   ├── UserReader.java            # CSV ItemReader
+    │   │   ├── UserItemProcessor.java     # Business processing
+    │   │   ├── UserDtoWriter.java         # JPA ItemWriter
+    │   │   ├── CleanupTasklet.java         # Pre-processing tasklet
+    │   │   ├── SummaryTasklet.java        # Post-processing tasklet
+    │   │   └── JobCompletionListener.java # Job lifecycle listener
+    │   ├── service/
+    │   │   └── UserService.java           # Mapping service
+    │   ├── mapper/
+    │   │   └── UserMapper.java            # MapStruct mapper
+    │   └── repository/
+    │       └── UserRepository.java        # JPA Repository
     │
-    ├── batch-infrastructure
-    │   └── Database, JPA & Batch configuration
-    │
-    ├── batch-reader
-    │   └── CSV / File ItemReaders
-    │
-    ├── batch-processor
-    │   └── Business processing logic
-    │
-    ├── batch-writer
-    │   └── JPA ItemWriters
-    │
-    ├── batch-job-core
-    │   └── Steps, Flows & Job orchestration
-    │
-    ├── batch-monitoring
-    │   └── Listeners, metrics & observability
-    │
-    ├── batch-scheduler
-    │   └── Scheduled batch execution
-    │
-    ├── batch-api
-    │   └── REST endpoints for job triggering
-    │
-    └── batch-runner
-        └── Spring Boot application launcher
+    └── src/main/resources/
+        ├── application.yml               # Application configuration
+        └── users.csv                      # Sample input data
 
-------------------------------------------------------------------------
+---
 
 ## ⚙️ Technologies Used
 
 ### Backend
 
 -   Java 17
--   Spring Boot 3
+-   Spring Boot 3.2.5
 -   Spring Batch
 -   Spring Data JPA
 -   Hibernate
+-   MapStruct
 
 ### Database
 
--   H2 Database (development)
--   JDBC JobRepository
+-   H2 Database (in-memory)
 
-### Build & Dependency Management
+### Build
 
--   Maven Multi-Module Project
+-   Maven
 
-### Monitoring & Logging
-
--   SLF4J
--   Spring Boot Actuator
--   Micrometer
-
-### Tools
-
--   IntelliJ IDEA
--   Git & GitHub
--   Maven Wrapper
-
-------------------------------------------------------------------------
+---
 
 ## 🔄 Batch Processing Flow
 
-    CSV File
+    users.csv
        ↓
-    ItemReader
+    UserReader (FlatFileItemReader)
        ↓
-    ItemProcessor
+    UserItemProcessor (business logic)
        ↓
-    ItemWriter (JPA)
+    UserDtoWriter (JpaItemWriter)
        ↓
-    Database (H2)
+    H2 Database
 
-Job execution includes:
+Job execution flow:
 
--   Cleanup Step
--   Data Mapping Step
--   Validation & Processing
--   Summary / Reporting Step
--   Job Listeners & Monitoring
+1.  **CleanupStep** - Clears existing data from users table
+2.  **userMappingStep** - Reads CSV, processes, writes to database (chunk size: 3)
+3.  **summaryStep** - Logs job completion summary
 
-------------------------------------------------------------------------
+---
 
 ## 🚀 Features
 
-✅ Enterprise multi-module architecture\
 ✅ Chunk-oriented batch processing\
 ✅ Restartable jobs\
-✅ Conditional job flows\
-✅ Job incrementer support\
-✅ Scheduled execution\
-✅ REST job triggering\
+✅ Conditional job flows using BatchStatus\
+✅ Job incrementer support (RunIdIncrementer)\
+✅ Multi-step jobs with tasklets\
 ✅ Database persistence using JPA\
-✅ Batch metrics & monitoring\
-✅ Clean separation of responsibilities
+✅ Job execution listeners\
+✅ Clean separation of concerns
 
-------------------------------------------------------------------------
+---
 
 ## ▶️ Running the Application
 
 ### Build project
 
-``` bash
+```bash
 mvn clean install
 ```
 
 ### Run application
 
-``` bash
-mvn spring-boot:run -pl batch-runner
+```bash
+mvn spring-boot:run
 ```
 
-------------------------------------------------------------------------
+The batch job will automatically execute on startup via CommandLineRunner.
+
+---
 
 ## 🌐 Access H2 Console
 
@@ -161,57 +136,47 @@ mvn spring-boot:run -pl batch-runner
 
 Datasource configuration:
 
-    JDBC URL: jdbc:h2:mem:testdb
-    User: sa
-    Password:
+    JDBC URL: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    User: admin
+    Password: admin
 
-------------------------------------------------------------------------
+---
 
 ## 📊 Example Use Case
 
-The batch job imports users from a CSV file, processes the data, and
-stores it into the database.
+The batch job imports users from a CSV file, processes the data, and stores
+it into the database.
 
-Example CSV:
+Example CSV (`users.csv`):
 
     id,name,email
     1,Alice,alice@example.com
     2,Bob,bob@example.com
+    3,Charlie,charlie@example.com
 
-------------------------------------------------------------------------
+---
 
 ## 🧠 Design Principles
 
--   Modular architecture
--   High cohesion / low coupling
--   Separation of execution and business logic
--   Scalable batch orchestration
--   Production-ready structure
+-   Single-module simplicity
+-   Separation of concerns (Reader/Processor/Writer)
+-   Declarative job configuration via @Configuration
+-   Transactional batch operations
+-   Listener pattern for job lifecycle
 
-------------------------------------------------------------------------
+---
 
 ## 📈 Future Improvements
 
--   Distributed batch processing
--   Kafka remote partitioning
--   PostgreSQL production profile
--   Docker & Kubernetes deployment
+-   Multi-module Maven structure
+-   REST API for job triggering
+-   Job scheduling with @Scheduled
+-   Error handling and skip policy
 -   Parallel step execution
--   Job dashboard UI
+-   Unit and integration tests
+-   PostgreSQL/MySQL production profile
 
-------------------------------------------------------------------------
-
-## 👨‍💻 Project Summary (Resume Description)
-
-Designed and developed an enterprise-grade Spring Batch processing
-platform using a multi-module Spring Boot architecture.\
-Implemented chunk-based data processing pipelines with CSV ingestion,
-JPA persistence, job scheduling, monitoring, and REST-based job
-triggering.\
-Applied clean architecture principles to ensure scalability,
-maintainability, and production readiness.
-
-------------------------------------------------------------------------
+---
 
 ## 📄 License
 
