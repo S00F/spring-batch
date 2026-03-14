@@ -1,56 +1,74 @@
 package com.batch.demo.batch;
 
 import com.batch.demo.model.UserDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemStream;
+import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
-
 @Component
-public class UserReader implements ItemReader<UserDto> {
+public class UserReader implements ItemReader<UserDto>, ItemStream {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserReader.class);
+
+    @Value("${batch.input.file:users.csv}")
+    private String inputFile;
 
     private FlatFileItemReader<UserDto> delegate;
 
-    @PostConstruct
-    public void init() throws Exception {
+    private FlatFileItemReader<UserDto> buildDelegate() {
+        FlatFileItemReader<UserDto> reader = new FlatFileItemReader<>();
+        reader.setResource(new ClassPathResource(inputFile));
+        reader.setLinesToSkip(1);
 
-        delegate = new FlatFileItemReader<>();
-        delegate.setResource(new ClassPathResource("users.csv"));
-        delegate.setLinesToSkip(1);
-
-        // CSV tokenizer
         DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
         tokenizer.setNames("userId", "userName", "userEmail");
 
-        // Object mapper
-        BeanWrapperFieldSetMapper<UserDto> mapper =
-                new BeanWrapperFieldSetMapper<>();
+        BeanWrapperFieldSetMapper<UserDto> mapper = new BeanWrapperFieldSetMapper<>();
         mapper.setTargetType(UserDto.class);
 
-        // Line mapper
         DefaultLineMapper<UserDto> lineMapper = new DefaultLineMapper<>();
         lineMapper.setLineTokenizer(tokenizer);
         lineMapper.setFieldSetMapper(mapper);
 
-        delegate.setLineMapper(lineMapper);
+        reader.setLineMapper(lineMapper);
+        return reader;
+    }
 
-        delegate.open(new ExecutionContext());
+    @Override
+    public void open(ExecutionContext executionContext) throws ItemStreamException {
+        delegate = buildDelegate();
+        delegate.open(executionContext);
+        logger.info("UserReader opened with file: {}", inputFile);
+    }
+
+    @Override
+    public void update(ExecutionContext executionContext) throws ItemStreamException {
+        delegate.update(executionContext);
+    }
+
+    @Override
+    public void close() throws ItemStreamException {
+        if (delegate != null) {
+            delegate.close();
+        }
     }
 
     @Override
     public UserDto read() throws Exception {
         UserDto userDto = delegate.read();
-
         if (userDto != null) {
-            System.out.println("Reading User: " + userDto.getUserName());
+            logger.debug("Reading user: {}", userDto.getUserName());
         }
-
         return userDto;
     }
 }

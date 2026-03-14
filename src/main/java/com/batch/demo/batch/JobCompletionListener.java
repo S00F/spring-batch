@@ -32,9 +32,11 @@ public class JobCompletionListener implements JobExecutionListener {
         logger.info("JOB STATUS: {}", jobExecution.getStatus());
 
         if (jobExecution.getStatus().isUnsuccessful()) {
+            jobExecution.getAllFailureExceptions()
+                    .forEach(e -> logger.error("Failure: {}", e.getMessage()));
             logger.error("Job failed!");
         } else {
-            logger.info("Job completed successfully!");
+            logger.info("User import completed successfully!");
         }
 
         logger.info("Job finished in {} ms", duration);

@@ -26,8 +26,10 @@ public class CleanupTasklet implements Tasklet {
             StepContribution contribution,
             ChunkContext chunkContext) {
 
-        logger.info("Cleaning users table...");
+        long count = repository.count();
+        logger.info("Cleaning users table... ({} records to delete)", count);
         repository.deleteAll();
+        logger.info("Users table cleared.");
 
         return RepeatStatus.FINISHED;
     }

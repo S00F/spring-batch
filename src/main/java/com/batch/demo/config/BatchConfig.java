@@ -3,15 +3,13 @@ package com.batch.demo.config;
 import com.batch.demo.batch.*;
 import com.batch.demo.model.User;
 import com.batch.demo.model.UserDto;
-import jakarta.persistence.EntityManagerFactory;
-import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.database.JpaItemWriter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -24,34 +22,38 @@ public class BatchConfig {
     private final UserReader userReader;
     private final UserItemProcessor userItemProcessor;
     private final UserDtoWriter userDtoWriter;
-    private final EntityManagerFactory entityManagerFactory;
     private final CleanupTasklet cleanupTasklet;
-    private final SummaryTasklet summaryTasklet;
-    private final JobCompletionListener jobExecutionListener;
+    private final JobCompletionListener jobCompletionListener;
+    private final AdvancedStepListener advancedStepListener;
+    private final ChunkMonitoringListener chunkMonitoringListener;
 
+    @Value("${batch.chunk.size:10}")
+    private int chunkSize;
 
+    @Value("${batch.skip.limit:10}")
+    private int skipLimit;
+
+    @Value("${batch.retry.max-attempts:3}")
+    private int retryMaxAttempts;
 
     public BatchConfig(JobRepository jobRepository,
                        PlatformTransactionManager transactionManager,
                        UserReader userReader,
                        UserItemProcessor userItemProcessor,
-                       UserDtoWriter userDtoWriter, EntityManagerFactory entityManagerFactory, CleanupTasklet cleanupTasklet, SummaryTasklet summaryTasklet, JobCompletionListener jobExecutionListener) {
+                       UserDtoWriter userDtoWriter,
+                       CleanupTasklet cleanupTasklet,
+                       JobCompletionListener jobCompletionListener,
+                       AdvancedStepListener advancedStepListener,
+                       ChunkMonitoringListener chunkMonitoringListener) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.userReader = userReader;
         this.userItemProcessor = userItemProcessor;
         this.userDtoWriter = userDtoWriter;
-        this.entityManagerFactory = entityManagerFactory;
         this.cleanupTasklet = cleanupTasklet;
-        this.summaryTasklet = summaryTasklet;
-        this.jobExecutionListener = jobExecutionListener;
-    }
-
-    @Bean
-    public JpaItemWriter<User> userWriter() {
-        JpaItemWriter<User> writer = new JpaItemWriter<>();
-        writer.setEntityManagerFactory(entityManagerFactory);
-        return writer;
+        this.jobCompletionListener = jobCompletionListener;
+        this.advancedStepListener = advancedStepListener;
+        this.chunkMonitoringListener = chunkMonitoringListener;
     }
 
     @Bean
@@ -62,35 +64,27 @@ public class BatchConfig {
     }
 
     @Bean
-    public Step summaryStep() {
-        return new StepBuilder("summaryStep", jobRepository)
-                .tasklet(summaryTasklet, transactionManager)
-                .build();
-    }
-
-    @Bean
     public Step userMappingStep() {
         return new StepBuilder("userMappingStep", jobRepository)
-                .<UserDto, User>chunk(3, transactionManager)
+                .<UserDto, User>chunk(chunkSize, transactionManager)
                 .reader(userReader)
                 .processor(userItemProcessor)
                 .writer(userDtoWriter)
+                .faultTolerant()
+                .skip(Exception.class).skipLimit(skipLimit)
+                .retry(Exception.class).retryLimit(retryMaxAttempts)
+                .listener(advancedStepListener)
+                .listener(chunkMonitoringListener)
                 .build();
     }
 
     @Bean
     public Job userJob() {
-
         return new JobBuilder("userJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
-                .listener(jobExecutionListener)
+                .listener(jobCompletionListener)
                 .start(cleanupStep())
                 .next(userMappingStep())
-                    .on(BatchStatus.FAILED.name()).end()
-                    .on(BatchStatus.COMPLETED.name()).to(summaryStep()).end()
                 .build();
     }
-
-
-
 }

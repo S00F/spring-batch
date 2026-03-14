@@ -2,8 +2,8 @@ spring:
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
-    username: admin
-    password: admin
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
 
   h2:
     console:
@@ -18,4 +18,25 @@ spring:
     jdbc:
       initialize-schema: always
     job:
-      enabled: true
+      enabled: false  # Job is launched programmatically via CommandLineRunner
+
+batch:
+  chunk:
+    size: 10
+
+  skip:
+    limit: 10
+
+  retry:
+    max-attempts: 3
+
+  restart:
+    enabled: true
+
+  jobs:
+    schedule:
+      enabled: false
+      cron: "0 0 2 * * ?"
+
+  input:
+    file: users.csv
